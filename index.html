@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Clock App</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css?v=23" />
+</head>
+<body>
+    <!-- Sfondo animato con blob gradienti -->
+    <div class="bg-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+    <div id="cursor-glow" class="cursor-glow"></div>
+    <canvas id="particles"></canvas>
+
+    <!-- ============ LOGIN ============ -->
+    <section id="login-screen" class="screen hidden">
+        <div class="glass card-lg fade-in">
+            <div class="logo-dot"></div>
+            <h1 class="title-xl">Accedi</h1>
+            <p class="subtitle">Entra con il tuo account per iniziare</p>
+            <form id="login-form" class="form">
+                <label class="field">
+                    <span>Username</span>
+                    <input type="text" id="login-user" placeholder="es. admin" required autocomplete="username" autocapitalize="none" />
+                </label>
+                <label class="field">
+                    <span>Password</span>
+                    <input type="password" id="login-pass" placeholder="La tua password" required autocomplete="current-password" />
+                </label>
+                <label class="checkbox">
+                    <input type="checkbox" id="login-remember" />
+                    <span class="checkmark"></span>
+                    <span>Salva login per 30 giorni</span>
+                </label>
+                <div id="login-error" class="error hidden">Credenziali sbagliate</div>
+                <button type="submit" class="btn btn-primary btn-block">
+                    <span>Entra</span>
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <!-- ============ APP PRINCIPALE ============ -->
+    <main id="app-screen" class="screen hidden">
+        <div id="impersonation-banner" class="impersonation-banner hidden">
+            <div class="imp-inner">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                </svg>
+                <span class="imp-text">Stai visualizzando come <strong id="imp-name">—</strong></span>
+                <button id="stop-impersonation-btn" class="imp-btn">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3"/>
+                    </svg>
+                    <span>Torna al tuo account</span>
+                </button>
+            </div>
+        </div>
+        <header class="app-header">
+            <div class="header-left">
+                <div class="brand">
+                    <div class="logo-dot small"></div>
+                    <div>
+                        <div class="brand-name">Clock App</div>
+                        <div class="brand-sub" id="user-greeting">Ciao</div>
+                    </div>
+                </div>
+                <div class="viewas-wrap hidden" id="viewas-wrap">
+                <button type="button" id="viewas-btn" class="viewas-toggle">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <span>Visualizza come</span>
+                    <svg class="chev" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+                </button>
+                <div id="viewas-menu" class="viewas-menu hidden">
+                    <div class="viewas-menu-title">Scegli un utente</div>
+                    <div id="viewas-menu-list" class="viewas-menu-list"></div>
+                </div>
+                </div>
+            </div>
+            <nav class="tabs">
+                <button class="tab active" data-tab="clock" data-perm="clock">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                    <span>Timbratura</span>
+                </button>
+                <button class="tab" data-tab="goals" data-perm="goals">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>
+                    <span>Obiettivi</span>
+                </button>
+                <button class="tab" data-tab="tasks" data-perm="tasks">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h9"/></svg>
+                    <span>Task</span>
+                </button>
+                <button class="tab tab-admin hidden" data-tab="admin">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                    <span>Admin</span>
+                </button>
+            </nav>
+            <div class="zoom-controls" role="group" aria-label="Zoom layout">
+                <button id="zoom-out-btn" class="zoom-btn" title="Riduci layout" aria-label="Riduci">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/></svg>
+                </button>
+                <button id="zoom-reset-btn" class="zoom-btn zoom-reset" title="Ripristina layout (100%)">100%</button>
+                <button id="zoom-in-btn" class="zoom-btn" title="Ingrandisci layout" aria-label="Ingrandisci">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                </button>
+            </div>
+            <button id="sound-toggle" class="sound-toggle" title="Suoni">
+                <svg id="sound-on-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+                <svg id="sound-off-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" class="hidden"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+            </button>
+            <div id="sync-indicator" class="sync-indicator" title="Sincronizzato">
+                <span class="sync-dot"></span>
+            </div>
+            <button id="logout-btn" class="btn-ghost" title="Esci">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
+            </button>
+        </header>
+
+        <!-- Tab: Timbratura -->
+        <section class="tab-panel active" data-panel="clock">
+            <div class="clock-hero">
+                <div class="live-clock">
+                    <div class="time" id="live-time">--:--:--</div>
+                    <div class="date" id="live-date">--</div>
+                </div>
+
+                <div class="status-pill" id="status-pill">
+                    <span class="dot"></span>
+                    <span id="status-text">Fuori servizio</span>
+                </div>
+
+                <button id="clock-btn" class="clock-btn">
+                    <div class="ring"></div>
+                    <div class="ring ring-2"></div>
+                    <div class="ring ring-3"></div>
+                    <div class="clock-btn-inner">
+                        <span id="clock-btn-label">CLOCK IN</span>
+                        <span id="clock-btn-sub">Inizia la sessione</span>
+                    </div>
+                </button>
+
+                <div class="session-timer hidden" id="session-timer">
+                    <div class="session-label">Sessione in corso</div>
+                    <div class="session-value" id="session-value">00:00:00</div>
+                    <div class="session-breakdown" id="session-breakdown"></div>
+                </div>
+
+                <div id="break-actions" class="break-actions hidden">
+                    <button id="break-btn" class="break-btn">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/>
+                            <line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/>
+                        </svg>
+                        <span id="break-btn-label">Vai in pausa</span>
+                    </button>
+                    <button id="lunch-btn" class="lunch-btn">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 2l-2 8h-2l-2-8M14 10v12M4 2v20M4 2c2 0 4 2 4 5s-2 5-4 5"/>
+                        </svg>
+                        <span id="lunch-btn-label">Pausa pranzo</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="stats-row">
+                <div class="stat-card glass">
+                    <div class="stat-label">Oggi</div>
+                    <div class="stat-value" id="stat-today">0h 00m</div>
+                    <div class="stat-sub" id="stat-today-sub">0 sessioni</div>
+                </div>
+                <div class="stat-card glass">
+                    <div class="stat-label">Questa settimana</div>
+                    <div class="stat-value" id="stat-week">0h 00m</div>
+                    <div class="stat-sub" id="stat-week-sub">0 giorni lavorati</div>
+                </div>
+                <div class="stat-card glass">
+                    <div class="stat-label">Pause oggi</div>
+                    <div class="stat-value" id="stat-breaks">0m</div>
+                    <div class="stat-sub" id="stat-breaks-sub">pause non pagate</div>
+                </div>
+            </div>
+
+            <div class="glass card-lg weekly-card">
+                <div class="card-head">
+                    <div>
+                        <h2 id="period-title">Riepilogo settimana</h2>
+                        <p class="muted" id="week-range">—</p>
+                    </div>
+                    <div class="period-toggle">
+                        <button class="period-btn active" data-period="week">Settimana</button>
+                        <button class="period-btn" data-period="month">Mese</button>
+                    </div>
+                </div>
+                <div class="period-total">
+                    <div class="period-total-hours" id="week-hours-count">0h 00m</div>
+                    <div class="period-total-meta"><span id="week-days-count">0</span> <span id="week-days-label">giorni lavorati</span></div>
+                </div>
+                <div id="month-weekhdr" class="month-weekhdr hidden">
+                    <span>LUN</span><span>MAR</span><span>MER</span><span>GIO</span><span>VEN</span><span>SAB</span><span>DOM</span>
+                </div>
+                <div id="week-list" class="week-list"></div>
+                <div id="user-matrix-wrap" class="user-matrix-wrap hidden">
+                    <div class="matrix-title">
+                        <h3>Ore per utente</h3>
+                        <p class="muted">Clicca su una cella per il dettaglio</p>
+                    </div>
+                    <div class="matrix-scroll">
+                        <div id="user-matrix" class="user-matrix"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass card-lg history-card">
+                <div class="card-head">
+                    <h2>Storico timbrature</h2>
+                    <span class="muted" id="history-count">0 sessioni</span>
+                </div>
+                <div id="history-list" class="history-list"></div>
+                <div id="history-empty" class="empty-state">
+                    <div class="empty-icon">⏱</div>
+                    <div>Nessuna sessione ancora registrata</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab: Obiettivi -->
+        <section class="tab-panel" data-panel="goals">
+            <div class="glass card-lg">
+                <div class="card-head">
+                    <div>
+                        <h2>Obiettivi</h2>
+                        <p class="muted">I traguardi per cui stai lavorando</p>
+                    </div>
+                    <button id="add-goal-btn" class="btn btn-primary">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                        <span>Nuovo obiettivo</span>
+                    </button>
+                </div>
+                <div id="goals-filter" class="filter-row goals-filter"></div>
+                <div id="goals-list" class="goals-list"></div>
+                <div id="goals-empty" class="empty-state">
+                    <div class="empty-icon">🎯</div>
+                    <div>Nessun obiettivo ancora. Aggiungi il primo!</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab: Task -->
+        <section class="tab-panel" data-panel="tasks">
+            <div class="glass card-lg">
+                <div class="card-head">
+                    <div>
+                        <h2>Task</h2>
+                        <p class="muted">Attività concrete legate agli obiettivi</p>
+                    </div>
+                    <button id="add-task-btn" class="btn btn-primary">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                        <span>Nuova task</span>
+                    </button>
+                </div>
+                <div class="filter-row">
+                    <button class="chip active" data-filter="all">Tutte</button>
+                    <button class="chip" data-filter="open">Da fare</button>
+                    <button class="chip" data-filter="done">Completate</button>
+                </div>
+                <div id="tasks-list" class="tasks-list"></div>
+                <div id="tasks-empty" class="empty-state">
+                    <div class="empty-icon">✅</div>
+                    <div>Nessuna task. Aggiungi la prima per iniziare!</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab: Admin -->
+        <section class="tab-panel" data-panel="admin">
+            <div class="admin-hero glass">
+                <div class="admin-hero-inner">
+                    <div class="admin-badge">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        Modalità admin
+                    </div>
+                    <h2>Impostazioni</h2>
+                    <p class="muted">Gestisci utenti, permessi ed esporta i dati.</p>
+                </div>
+            </div>
+
+            <div class="admin-grid">
+                <div class="glass card-lg admin-card admin-card-wide">
+                    <div class="card-head">
+                        <div>
+                            <h3>Utenti</h3>
+                            <p class="muted">Crea account per i tuoi dipendenti con permessi personalizzati.</p>
+                        </div>
+                        <button id="add-user-btn" class="btn btn-primary">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                            <span>Nuovo utente</span>
+                        </button>
+                    </div>
+                    <div id="users-list" class="users-list"></div>
+                </div>
+
+                <div class="glass card-lg admin-card">
+                    <h3>Esporta timbrature</h3>
+                    <p class="muted">Scarica tutto lo storico in CSV, pronto per Excel o buste paga.</p>
+                    <div class="admin-actions">
+                        <button id="export-csv-btn" class="btn btn-primary">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                            <span>Scarica CSV</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="glass card-lg admin-card">
+                    <h3>Il mio profilo</h3>
+                    <p class="muted">Aggiorna nome visualizzato, username e password del tuo account admin.</p>
+                    <form id="admin-profile-form" class="form">
+                        <label class="field">
+                            <span>Nome visualizzato</span>
+                            <input type="text" id="admin-display" placeholder="Es. Lorenzo" required maxlength="60" />
+                        </label>
+                        <label class="field">
+                            <span>Username</span>
+                            <input type="text" id="admin-username" placeholder="es. lorenzo" required maxlength="30" autocapitalize="none" autocomplete="username" />
+                        </label>
+                        <label class="field">
+                            <span>Password <span class="badge-small">visibile</span></span>
+                            <input type="text" id="admin-password" placeholder="La tua password" required minlength="4" autocomplete="off" spellcheck="false" />
+                        </label>
+                        <button type="submit" class="btn btn-primary">Salva modifiche</button>
+                    </form>
+                </div>
+
+                <div class="glass card-lg admin-card danger-zone">
+                    <h3>Zona pericolosa</h3>
+                    <p class="muted">Reset totale: cancella tutte le timbrature, obiettivi, task, utenti e credenziali.</p>
+                    <div class="admin-actions">
+                        <button id="reset-all-btn" class="btn btn-danger">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+                            <span>Reset totale</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ============ MODALS ============ -->
+    <div id="modal-goal" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-card glass">
+            <h3 id="modal-goal-title">Nuovo obiettivo</h3>
+            <form id="goal-form" class="form">
+                <label class="field">
+                    <span>Titolo</span>
+                    <input type="text" id="goal-title" placeholder="Es. Aumentare vendite Q1" required maxlength="80" />
+                </label>
+                <label class="field">
+                    <span>Descrizione (opzionale)</span>
+                    <textarea id="goal-desc" placeholder="Perché è importante" rows="5"></textarea>
+                </label>
+                <div class="field">
+                    <span>Lista</span>
+                    <input type="hidden" id="goal-list-id" />
+                    <div id="goal-list-picker" class="list-picker"></div>
+                </div>
+                <div class="field">
+                    <span>Scadenza (opzionale)</span>
+                    <div class="datepick-inline" id="goal-due-picker">
+                        <input type="hidden" id="goal-due" />
+                        <div class="dp-head">
+                            <button type="button" class="dp-nav" data-nav="-1" aria-label="Mese precedente">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+                            </button>
+                            <div class="dp-title" id="goal-due-title">—</div>
+                            <button type="button" class="dp-nav" data-nav="1" aria-label="Mese successivo">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+                            </button>
+                        </div>
+                        <div class="dp-weekdays">
+                            <span>L</span><span>M</span><span>M</span><span>G</span><span>V</span><span>S</span><span>D</span>
+                        </div>
+                        <div class="dp-grid" id="goal-due-grid"></div>
+                        <div class="dp-actions">
+                            <button type="button" class="dp-btn" data-action="clear">Cancella</button>
+                            <button type="button" class="dp-btn primary" data-action="today">Oggi</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-ghost" data-close>Annulla</button>
+                    <button type="submit" class="btn btn-primary">Salva</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-task" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-card glass">
+            <h3 id="modal-task-title">Nuova task</h3>
+            <form id="task-form" class="form">
+                <label class="field">
+                    <span>Cosa devi fare</span>
+                    <input type="text" id="task-title" placeholder="Es. Chiamare 10 lead" required maxlength="120" />
+                </label>
+                <label class="field">
+                    <span>Collega a un obiettivo</span>
+                    <select id="task-goal" required>
+                        <option value="">Seleziona obiettivo…</option>
+                    </select>
+                </label>
+                <label class="field">
+                    <span>Priorità</span>
+                    <div class="priority-picker">
+                        <input type="radio" name="prio" value="low" id="prio-low" />
+                        <label for="prio-low">Bassa</label>
+                        <input type="radio" name="prio" value="med" id="prio-med" checked />
+                        <label for="prio-med">Media</label>
+                        <input type="radio" name="prio" value="high" id="prio-high" />
+                        <label for="prio-high">Alta</label>
+                    </div>
+                </label>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-ghost" data-close>Annulla</button>
+                    <button type="submit" class="btn btn-primary">Salva</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Utente (create/edit) -->
+    <div id="modal-user" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-card glass">
+            <h3 id="modal-user-title">Nuovo utente</h3>
+            <form id="user-form" class="form">
+                <label class="field">
+                    <span>Nome visualizzato</span>
+                    <input type="text" id="user-display" placeholder="Es. Marco Rossi" required maxlength="60" />
+                </label>
+                <label class="field">
+                    <span>Username</span>
+                    <input type="text" id="user-username" placeholder="es. marco" required maxlength="30" autocapitalize="none" autocomplete="off" />
+                </label>
+                <label class="field" id="user-pass-field">
+                    <span>Password <span class="badge-small" id="user-pass-hint">min 4 caratteri</span></span>
+                    <input type="text" id="user-pass" placeholder="Password" minlength="4" autocomplete="off" spellcheck="false" />
+                </label>
+                <div class="section-title">Permessi</div>
+                <div class="perms-grid">
+                    <label class="perm-item">
+                        <input type="checkbox" id="perm-clock" checked />
+                        <div>
+                            <div class="perm-title">Timbratura</div>
+                            <div class="perm-desc">Fare clock in/out e pause</div>
+                        </div>
+                    </label>
+                    <label class="perm-item">
+                        <input type="checkbox" id="perm-goals" checked />
+                        <div>
+                            <div class="perm-title">Obiettivi</div>
+                            <div class="perm-desc">Vedere e gestire obiettivi</div>
+                        </div>
+                    </label>
+                    <label class="perm-item">
+                        <input type="checkbox" id="perm-tasks" checked />
+                        <div>
+                            <div class="perm-title">Task</div>
+                            <div class="perm-desc">Vedere e gestire task</div>
+                        </div>
+                    </label>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-ghost" data-close>Annulla</button>
+                    <button type="submit" class="btn btn-primary">Salva utente</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal dettaglio giorno (click su cella settimana/mese) -->
+    <div id="modal-day" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-card glass day-detail-card">
+            <div class="day-detail-head">
+                <div>
+                    <h3 id="day-detail-title">Giorno</h3>
+                    <p class="muted" id="day-detail-date">—</p>
+                </div>
+                <button type="button" class="btn-ghost" data-close aria-label="Chiudi">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M6 18L18 6"/></svg>
+                </button>
+            </div>
+            <div class="day-detail-grid">
+                <div class="day-stat day-stat-work">
+                    <div class="day-stat-icon">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                    </div>
+                    <div class="day-stat-label">Lavorato</div>
+                    <div class="day-stat-value" id="day-work">0h 00m</div>
+                </div>
+                <div class="day-stat day-stat-break">
+                    <div class="day-stat-icon">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/></svg>
+                    </div>
+                    <div class="day-stat-label">Pause</div>
+                    <div class="day-stat-value" id="day-break">0h 00m</div>
+                    <div class="day-stat-sub">non pagate</div>
+                </div>
+                <div class="day-stat day-stat-lunch">
+                    <div class="day-stat-icon">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 2l-2 8h-2l-2-8M14 10v12M4 2v20M4 2c2 0 4 2 4 5s-2 5-4 5"/></svg>
+                    </div>
+                    <div class="day-stat-label">Pausa pranzo</div>
+                    <div class="day-stat-value" id="day-lunch">0h 00m</div>
+                    <div class="day-stat-sub">pagata</div>
+                </div>
+            </div>
+            <div id="day-off-badge" class="day-off-badge hidden">
+                <span>🏖</span>
+                <span>Giorno libero</span>
+            </div>
+            <div class="day-sessions-title">Sessioni del giorno</div>
+            <div id="day-sessions" class="day-sessions"></div>
+            <div id="day-off-section" class="day-off-section hidden">
+                <button type="button" id="day-off-toggle" class="btn btn-block btn-ghost">
+                    <span id="day-off-icon">🏖</span>
+                    <span id="day-off-label">Segna come giorno libero</span>
+                </button>
+                <p class="muted" id="day-off-hint" style="text-align:center;font-size:12px;margin-top:6px">Puoi impostarne quanti vuoi a settimana</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal note post clock-out -->
+    <div id="modal-notes" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-card glass notes-card">
+            <div class="notes-head">
+                <div class="notes-icon">📝</div>
+                <div>
+                    <h3>Cosa hai fatto oggi?</h3>
+                    <p class="muted" id="notes-summary">Sessione conclusa</p>
+                </div>
+            </div>
+            <form id="notes-form" class="form">
+                <label class="field">
+                    <span>Note della sessione <span class="badge-small">obbligatorio</span></span>
+                    <textarea id="notes-text" rows="5" maxlength="1000" minlength="3" required placeholder="Es. Riunione col cliente, completato il prototipo landing, chiamate follow-up..." autofocus></textarea>
+                </label>
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary btn-block">Salva note</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal welcome per credenziali admin (mostrato solo al primo avvio) -->
+    <div id="modal-welcome" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-card glass welcome-card">
+            <div class="welcome-badge">🎉 Benvenuto</div>
+            <h3>Ecco le tue credenziali admin</h3>
+            <p class="muted">Ho creato l'account admin per te. Salva queste credenziali in un posto sicuro (o cambia subito la password dal pannello admin).</p>
+            <div class="cred-box">
+                <div class="cred-row">
+                    <span class="cred-label">Username</span>
+                    <code class="cred-val" id="welcome-user">admin</code>
+                </div>
+                <div class="cred-row">
+                    <span class="cred-label">Password</span>
+                    <code class="cred-val" id="welcome-pass">Admin2026!</code>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-primary btn-block" id="welcome-continue">Ho salvato, entra</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast hidden">
+        <span id="toast-text"></span>
+    </div>
+
+    <!-- Confetti canvas per clock-in celebrativo -->
+    <canvas id="confetti"></canvas>
+
+    <script src="app.js?v=23"></script>
+    <script>
+    (function () {
+        const KEY = 'clockapp:zoom';
+        const MIN = 0.6, MAX = 1.6, STEP = 0.1;
+        const inBtn = document.getElementById('zoom-in-btn');
+        const outBtn = document.getElementById('zoom-out-btn');
+        const resetBtn = document.getElementById('zoom-reset-btn');
+        if (!inBtn || !outBtn || !resetBtn) return;
+
+        const round = (z) => Math.round(z * 100) / 100;
+        function apply(z) {
+            z = round(Math.max(MIN, Math.min(MAX, z)));
+            document.body.style.zoom = z;
+            resetBtn.textContent = Math.round(z * 100) + '%';
+            outBtn.disabled = z <= MIN + 0.001;
+            inBtn.disabled = z >= MAX - 0.001;
+            try { localStorage.setItem(KEY, String(z)); } catch (e) {}
+            return z;
+        }
+
+        let current = parseFloat(localStorage.getItem(KEY));
+        if (!isFinite(current) || current <= 0) current = 1;
+        current = apply(current);
+
+        inBtn.addEventListener('click', () => { current = apply(current + STEP); });
+        outBtn.addEventListener('click', () => { current = apply(current - STEP); });
+        resetBtn.addEventListener('click', () => { current = apply(1); });
+    })();
+    </script>
+</body>
+</html>
