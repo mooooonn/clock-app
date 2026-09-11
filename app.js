@@ -177,6 +177,16 @@ let state = {
 /* ============ UTILS ============ */
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 
+// Crea (se non esiste) una categoria/lista con nome basato sullo username
+function ensureListForUser(username) {
+    if (!username) return;
+    const listName = username.charAt(0).toUpperCase() + username.slice(1);
+    if (!state.goalLists) state.goalLists = [];
+    if (state.goalLists.some(l => l.name.toLowerCase() === listName.toLowerCase())) return;
+    state.goalLists.push({ id: uid(), name: listName });
+    save(K.GOAL_LISTS, state.goalLists);
+}
+
 async function sha256(str) {
     const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
     return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
@@ -266,29 +276,11 @@ async function bootAuth() {
 
     state.auth = load(K.AUTH, { users: [] });
 
-    // Seed admin al primo avvio
+    // Prima installazione: nessun admin di default, la prima persona che accede lo crea
     if (!state.auth.users || state.auth.users.length === 0) {
-        const passHash = await sha256(DEFAULT_ADMIN.password);
-        state.auth = {
-            users: [{
-                id: uid(),
-                username: DEFAULT_ADMIN.username,
-                display: DEFAULT_ADMIN.display,
-                passHash,
-                passPlain: DEFAULT_ADMIN.password,
-                role: 'admin',
-                perms: { clock: true, goals: true, tasks: true },
-                createdAt: new Date().toISOString(),
-            }],
-        };
-        save(K.AUTH, state.auth);
+        document.body.classList.add('needs-setup');
         showScreen('login-screen');
-        $('#welcome-user').textContent = DEFAULT_ADMIN.username;
-        $('#welcome-pass').textContent = DEFAULT_ADMIN.password;
-        $('#modal-welcome').classList.remove('hidden');
-        // precompila username
-        $('#login-user').value = DEFAULT_ADMIN.username;
-        setTimeout(() => $('#login-pass').focus(), 300);
+        setTimeout(() => $('#login-user').focus(), 300);
         return;
     }
 
@@ -334,8 +326,8 @@ async function bootAuth() {
     setTimeout(() => $('#login-user').focus(), 300);
 }
 
-$('#welcome-continue').addEventListener('click', () => {
-    $('#modal-welcome').classList.add('hidden');
+$('#welcome-continue')?.addEventListener('click', () => {
+    $('#modal-welcome')?.classList.add('hidden');
     $('#login-pass').focus();
 });
 
@@ -344,8 +336,37 @@ $('#login-form').addEventListener('submit', async (e) => {
     const username = $('#login-user').value.trim().toLowerCase();
     const pass = $('#login-pass').value;
     const remember = $('#login-remember').checked;
-    const hash = await sha256(pass);
 
+    // Prima installazione: crea l'admin con le credenziali inserite
+    if (!state.auth.users || state.auth.users.length === 0) {
+        if (!username || !/^[a-z0-9_.-]{2,30}$/.test(username)) {
+            return toast('Username: 2-30 caratteri (lettere, numeri, . _ -)');
+        }
+        if (!pass || pass.length < 4) return toast('Password troppo corta (min 4 caratteri)');
+        const passHash = await sha256(pass);
+        const newAdmin = {
+            id: uid(),
+            username,
+            display: username.charAt(0).toUpperCase() + username.slice(1),
+            passHash,
+            passPlain: pass,
+            role: 'admin',
+            perms: { clock: true, goals: true, tasks: true },
+            createdAt: new Date().toISOString(),
+        };
+        state.auth.users = [newAdmin];
+        save(K.AUTH, state.auth);
+        ensureListForUser(username);
+        document.body.classList.remove('needs-setup');
+        state.currentUser = newAdmin;
+        sessionStorage.setItem(K.SESSION_USER, newAdmin.id);
+        if (remember) save(K.REMEMBER, { userId: newAdmin.id, expiresAt: Date.now() + REMEMBER_MS });
+        toast('Admin creato ✓');
+        enterApp();
+        return;
+    }
+
+    const hash = await sha256(pass);
     const user = state.auth.users.find(u => u.username.toLowerCase() === username && u.passHash === hash);
     if (!user) {
         const err = $('#login-error');
@@ -517,15 +538,8 @@ function enterApp() {
     state.daysOff = load(K.DAYS_OFF, {});
     state.goalLists = load(K.GOAL_LISTS, []);
     state.goalSessions = load(K.GOAL_SESSIONS, []);
-    // Seed liste di default al primo avvio
-    if (!state.goalLists || state.goalLists.length === 0) {
-        state.goalLists = [
-            { id: uid(), name: 'Lorenzo' },
-            { id: uid(), name: 'Gec' },
-            { id: uid(), name: 'Mike' },
-        ];
-        save(K.GOAL_LISTS, state.goalLists);
-    }
+    // Seed liste: una per ogni utente esistente (se mancante)
+    for (const u of state.auth.users) ensureListForUser(u.username);
 
     const u = state.currentUser;
     const isAdmin = u.role === 'admin';
@@ -1779,6 +1793,7 @@ $('#user-form').addEventListener('submit', async (e) => {
             createdAt: new Date().toISOString(),
         });
         save(K.AUTH, state.auth);
+        ensureListForUser(username);
         toast(`Utente ${display} creato ✓`);
     }
     closeModals();

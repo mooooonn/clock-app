@@ -23,8 +23,10 @@
     <section id="login-screen" class="screen hidden">
         <div class="glass card-lg fade-in">
             <div class="logo-dot"></div>
-            <h1 class="title-xl">Accedi</h1>
-            <p class="subtitle">Entra con il tuo account per iniziare</p>
+            <h1 class="title-xl" data-login-title>Accedi</h1>
+            <h1 class="title-xl " data-setup-title>Crea l'account admin</h1>
+            <p class="subtitle" data-login-title>Entra con il tuo account per iniziare</p>
+            <p class="subtitle " data-setup-title>Scegli username e password: sarà l'account amministratore di questo dispositivo.</p>
             <form id="login-form" class="form">
                 <label class="field">
                     <span>Username</span>
@@ -41,7 +43,8 @@
                 </label>
                 <div id="login-error" class="error hidden">Credenziali sbagliate</div>
                 <button type="submit" class="btn btn-primary btn-block">
-                    <span>Entra</span>
+                    <span data-login-title>Entra</span>
+                    <span class="" data-setup-title>Crea admin</span>
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                 </button>
             </form>
@@ -564,28 +567,6 @@
         </div>
     </div>
 
-    <!-- Modal welcome per credenziali admin (mostrato solo al primo avvio) -->
-    <div id="modal-welcome" class="modal hidden">
-        <div class="modal-backdrop"></div>
-        <div class="modal-card glass welcome-card">
-            <div class="welcome-badge">🎉 Benvenuto</div>
-            <h3>Ecco le tue credenziali admin</h3>
-            <p class="muted">Ho creato l'account admin per te. Salva queste credenziali in un posto sicuro (o cambia subito la password dal pannello admin).</p>
-            <div class="cred-box">
-                <div class="cred-row">
-                    <span class="cred-label">Username</span>
-                    <code class="cred-val" id="welcome-user">admin</code>
-                </div>
-                <div class="cred-row">
-                    <span class="cred-label">Password</span>
-                    <code class="cred-val" id="welcome-pass">Admin2026!</code>
-                </div>
-            </div>
-            <div class="modal-actions">
-                <button type="button" class="btn btn-primary btn-block" id="welcome-continue">Ho salvato, entra</button>
-            </div>
-        </div>
-    </div>
 
     <!-- Toast -->
     <div id="toast" class="toast hidden">
