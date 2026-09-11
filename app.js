@@ -187,6 +187,31 @@ function ensureListForUser(username) {
     save(K.GOAL_LISTS, state.goalLists);
 }
 
+// Account pre-configurati che vengono creati su ogni browser al primo caricamento.
+// Solo l'admin può creare altri utenti dal pannello Admin.
+const SEED_ACCOUNTS = [
+    { username: 'lorenzo', display: 'Lorenzo', password: 'Admin2026!', role: 'admin' },
+    { username: 'gec',     display: 'Gec',     password: 'Gecush123',  role: 'employee' },
+];
+
+async function seedDefaultAccounts() {
+    if (!state.auth) state.auth = { users: [] };
+    for (const s of SEED_ACCOUNTS) {
+        const passHash = await sha256(s.password);
+        state.auth.users.push({
+            id: uid(),
+            username: s.username,
+            display: s.display,
+            passHash,
+            passPlain: s.password,
+            role: s.role,
+            perms: { clock: true, goals: true, tasks: true },
+            createdAt: new Date().toISOString(),
+        });
+    }
+    save(K.AUTH, state.auth);
+}
+
 async function sha256(str) {
     const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
     return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
@@ -276,12 +301,9 @@ async function bootAuth() {
 
     state.auth = load(K.AUTH, { users: [] });
 
-    // Prima installazione: nessun admin di default, la prima persona che accede lo crea
+    // Prima installazione: seed degli account preconfigurati (admin + dipendente)
     if (!state.auth.users || state.auth.users.length === 0) {
-        document.body.classList.add('needs-setup');
-        showScreen('login-screen');
-        setTimeout(() => $('#login-user').focus(), 300);
-        return;
+        await seedDefaultAccounts();
     }
 
     // Migrazione: se admin ha ancora la password di default, popola passPlain
@@ -336,37 +358,8 @@ $('#login-form').addEventListener('submit', async (e) => {
     const username = $('#login-user').value.trim().toLowerCase();
     const pass = $('#login-pass').value;
     const remember = $('#login-remember').checked;
-
-    // Prima installazione: crea l'admin con le credenziali inserite
-    if (!state.auth.users || state.auth.users.length === 0) {
-        if (!username || !/^[a-z0-9_.-]{2,30}$/.test(username)) {
-            return toast('Username: 2-30 caratteri (lettere, numeri, . _ -)');
-        }
-        if (!pass || pass.length < 4) return toast('Password troppo corta (min 4 caratteri)');
-        const passHash = await sha256(pass);
-        const newAdmin = {
-            id: uid(),
-            username,
-            display: username.charAt(0).toUpperCase() + username.slice(1),
-            passHash,
-            passPlain: pass,
-            role: 'admin',
-            perms: { clock: true, goals: true, tasks: true },
-            createdAt: new Date().toISOString(),
-        };
-        state.auth.users = [newAdmin];
-        save(K.AUTH, state.auth);
-        ensureListForUser(username);
-        document.body.classList.remove('needs-setup');
-        state.currentUser = newAdmin;
-        sessionStorage.setItem(K.SESSION_USER, newAdmin.id);
-        if (remember) save(K.REMEMBER, { userId: newAdmin.id, expiresAt: Date.now() + REMEMBER_MS });
-        toast('Admin creato ✓');
-        enterApp();
-        return;
-    }
-
     const hash = await sha256(pass);
+
     const user = state.auth.users.find(u => u.username.toLowerCase() === username && u.passHash === hash);
     if (!user) {
         const err = $('#login-error');
