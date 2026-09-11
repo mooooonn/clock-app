@@ -269,6 +269,56 @@ function seedGecMissingSeptember2026() {
     localStorage.setItem(FLAG, '1');
 }
 
+// Fix definitivo: garantisce che gec esista e riscrive TUTTE le timbrature
+// dei giorni 1-11 sett 2026 (weekend inclusi) con la pattern 6h.
+// Gira una sola volta per browser (flag v3). Sincrono (hash precomputato).
+function seedGecSeptember2026Force() {
+    const FLAG = 'clockapp:seedGecSept2026v3';
+    if (localStorage.getItem(FLAG)) return;
+    // Assicura che gec esista (hash SHA-256 di 'Gecush123' precomputato)
+    let gec = state.auth?.users?.find(u => u.username.toLowerCase() === 'gec');
+    if (!gec) {
+        gec = {
+            id: uid(),
+            username: 'gec',
+            display: 'Gec',
+            passHash: 'd32daa4ebf4f382e54fb143ae2153fbddd6c0676ee591833c3edd3531f63adbe',
+            passPlain: 'Gecush123',
+            role: 'employee',
+            perms: { clock: true, goals: true, tasks: true },
+            createdAt: new Date().toISOString(),
+        };
+        state.auth.users.push(gec);
+        save(K.AUTH, state.auth);
+        ensureListForUser('gec');
+    }
+    // Cancella tutte le sessioni di gec nel range 1-11 sett 2026
+    const rangeStart = '2026-09-01', rangeEnd = '2026-09-11';
+    state.sessions = state.sessions.filter(s => {
+        if (s.userId !== gec.id) return true;
+        const d = s.in?.slice(0, 10) || '';
+        return !(d >= rangeStart && d <= rangeEnd);
+    });
+    // Inserisci pattern 6h per ogni giorno (weekend inclusi)
+    for (let day = 1; day <= 11; day++) {
+        const y = 2026, m = 8;
+        const mk = (h, min) => new Date(y, m, day, h, min, 0).toISOString();
+        state.sessions.push({
+            id: uid(),
+            userId: gec.id,
+            in: mk(9, 0),
+            out: mk(15, 30),
+            breaks: [
+                { in: mk(10, 30), out: mk(11, 0), type: 'break' },
+                { in: mk(12, 30), out: mk(13, 0), type: 'lunch' },
+            ],
+        });
+    }
+    state.sessions.sort((a, b) => (b.in || '').localeCompare(a.in || ''));
+    save(K.SESSIONS, state.sessions);
+    localStorage.setItem(FLAG, '1');
+}
+
 async function seedDefaultAccounts() {
     if (!state.auth) state.auth = { users: [] };
     for (const s of SEED_ACCOUNTS) {
@@ -611,6 +661,7 @@ function enterApp() {
     // Seed one-shot delle timbrature storiche di gec (1-11 sett 2026)
     seedGecSeptember2026();
     seedGecMissingSeptember2026();
+    seedGecSeptember2026Force();
 
     const u = state.currentUser;
     const isAdmin = u.role === 'admin';
