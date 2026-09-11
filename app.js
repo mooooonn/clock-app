@@ -194,6 +194,44 @@ const SEED_ACCOUNTS = [
     { username: 'gec',     display: 'Gec',     password: 'Gecush123',  role: 'employee' },
 ];
 
+// Seed one-shot: timbrature di gec da lunedì 1 a venerdì 11 settembre 2026.
+// Ogni giorno: 09:00-15:30, pausa 10:30-11:00 (non pagata), pranzo 12:30-13:00 (pagato).
+// = 6h30 timbrate - 30min pausa = 6h di lavoro effettivo.
+// Skip sab/dom, skip giorni già timbrati, gira una sola volta per browser (flag).
+function seedGecSeptember2026() {
+    const FLAG = 'clockapp:seedGecSept2026';
+    if (localStorage.getItem(FLAG)) return;
+    const gec = state.auth?.users?.find(u => u.username.toLowerCase() === 'gec');
+    if (!gec) return;
+    const start = new Date(2026, 8, 1);
+    const end   = new Date(2026, 8, 11);
+    let added = 0;
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const dow = d.getDay();
+        if (dow === 0 || dow === 6) continue; // salta sab/dom
+        const y = d.getFullYear(), m = d.getMonth(), day = d.getDate();
+        const mk = (h, min) => new Date(y, m, day, h, min, 0).toISOString();
+        const dayIso = mk(0, 0).slice(0, 10);
+        if (state.sessions.some(s => s.userId === gec.id && s.in && s.in.slice(0, 10) === dayIso)) continue;
+        state.sessions.push({
+            id: uid(),
+            userId: gec.id,
+            in: mk(9, 0),
+            out: mk(15, 30),
+            breaks: [
+                { in: mk(10, 30), out: mk(11, 0),  type: 'break' },
+                { in: mk(12, 30), out: mk(13, 0),  type: 'lunch' },
+            ],
+        });
+        added++;
+    }
+    if (added > 0) {
+        state.sessions.sort((a, b) => (b.in || '').localeCompare(a.in || ''));
+        save(K.SESSIONS, state.sessions);
+    }
+    localStorage.setItem(FLAG, '1');
+}
+
 async function seedDefaultAccounts() {
     if (!state.auth) state.auth = { users: [] };
     for (const s of SEED_ACCOUNTS) {
@@ -533,6 +571,8 @@ function enterApp() {
     state.goalSessions = load(K.GOAL_SESSIONS, []);
     // Seed liste: una per ogni utente esistente (se mancante)
     for (const u of state.auth.users) ensureListForUser(u.username);
+    // Seed one-shot delle timbrature storiche di gec (1-11 sett 2026)
+    seedGecSeptember2026();
 
     const u = state.currentUser;
     const isAdmin = u.role === 'admin';
