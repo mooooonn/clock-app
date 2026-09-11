@@ -232,6 +232,43 @@ function seedGecSeptember2026() {
     localStorage.setItem(FLAG, '1');
 }
 
+// Fix mirato: aggiunge (o rimpiazza) le timbrature dei giorni mancanti
+// Ven 4 / Sab 5 / Mar 8 / Gio 10 settembre 2026 con la pattern standard 6h.
+// Se un giorno ha già una sessione con ore molto diverse, la rimpiazza.
+function seedGecMissingSeptember2026() {
+    const FLAG = 'clockapp:seedGecMissingSept2026';
+    if (localStorage.getItem(FLAG)) return;
+    const gec = state.auth?.users?.find(u => u.username.toLowerCase() === 'gec');
+    if (!gec) return;
+    const missing = [4, 5, 8, 10];
+    let changed = 0;
+    for (const dayNum of missing) {
+        const y = 2026, m = 8, day = dayNum;
+        const mk = (h, min) => new Date(y, m, day, h, min, 0).toISOString();
+        const dayIso = mk(0, 0).slice(0, 10);
+        // Rimuovi eventuali sessioni esistenti di gec su questo giorno (potrebbero essere aperte o parziali)
+        const before = state.sessions.length;
+        state.sessions = state.sessions.filter(s => !(s.userId === gec.id && s.in && s.in.slice(0, 10) === dayIso));
+        if (state.sessions.length !== before) changed++;
+        state.sessions.push({
+            id: uid(),
+            userId: gec.id,
+            in: mk(9, 0),
+            out: mk(15, 30),
+            breaks: [
+                { in: mk(10, 30), out: mk(11, 0), type: 'break' },
+                { in: mk(12, 30), out: mk(13, 0), type: 'lunch' },
+            ],
+        });
+        changed++;
+    }
+    if (changed > 0) {
+        state.sessions.sort((a, b) => (b.in || '').localeCompare(a.in || ''));
+        save(K.SESSIONS, state.sessions);
+    }
+    localStorage.setItem(FLAG, '1');
+}
+
 async function seedDefaultAccounts() {
     if (!state.auth) state.auth = { users: [] };
     for (const s of SEED_ACCOUNTS) {
@@ -573,6 +610,7 @@ function enterApp() {
     for (const u of state.auth.users) ensureListForUser(u.username);
     // Seed one-shot delle timbrature storiche di gec (1-11 sett 2026)
     seedGecSeptember2026();
+    seedGecMissingSeptember2026();
 
     const u = state.currentUser;
     const isAdmin = u.role === 'admin';
